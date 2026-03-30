@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Stream</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial;
+  background: linear-gradient(#0b0f14, #020617);
+  color: white;
+}
+
+.container {
+  max-width: 900px;
+  margin: auto;
+  padding: 15px;
+}
+
+.header {
+  background: #0f172a;
+  border-radius: 15px;
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.live {
+  background: linear-gradient(90deg,#9333ea,#ec4899);
+  padding: 5px 12px;
+  border-radius: 20px;
+}
+
+/* PLAYER */
+.player {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: black;
+  border-radius: 15px;
+  overflow: hidden;
+}
+
+.player iframe {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+.overlay2 {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0,0,0,0.6);
+  padding: 5px 10px;
+  border-radius: 8px;
+}
+
+.bottom {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  display: flex;
+  gap: 10px;
+}
+
+/* FULLSCREEN OVERLAY */
+#fullOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: black;
+  display: none;
+  z-index: 99999;
+}
+
+#fullOverlay iframe {
+  width: 100%;
+  height: 100%;
+}
+
+.closeFull {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  font-size: 25px;
+  color: white;
+  cursor: pointer;
+  z-index: 100000;
+}
+
+.full-btn {
+  margin-top: 10px;
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  background: #111827;
+  color: white;
+}
+
+/* CARDS */
+.card {
+  margin-top: 20px;
+  background: #0f172a;
+  padding: 20px;
+  border-radius: 15px;
+  text-align: center;
+}
+
+.btn {
+  margin-top: 15px;
+  padding: 15px;
+  border-radius: 12px;
+  background: linear-gradient(90deg,#6366f1,#d946ef);
+  font-weight: bold;
+  color: white;
+  border: none;
+}
+
+/* POPUP */
+.popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.popup-box {
+  width: 90%;
+  max-width: 350px;
+  background: #0f172a;
+  border-radius: 20px;
+  padding: 25px;
+  text-align: center;
+}
+
+.join-btn, .close-btn {
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  border: none;
+  color: white;
+}
+
+.join-btn {
+  background: linear-gradient(90deg,#6366f1,#d946ef);
+}
+
+.close-btn {
+  background: #1e293b;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="header">
+  <div>@cricmatchstream</div>
+  <div class="live">● LIVE</div>
+</div>
+
+<!-- PLAYER -->
+<div class="player">
+  <iframe 
+    id="mainPlayer"
+    src="https://player.kick.com/dillzy12345?autoplay=true&muted=true"
+    allow="autoplay; fullscreen; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+
+  <div class="overlay2">HD</div>
+
+  <div class="bottom">
+    👥 <span id="viewerCount">0</span>
+    <span style="color:lime;">●</span>
+    <span id="timer">00:00:00</span>
+  </div>
+</div>
+
+<button class="full-btn" onclick="openFull()">⛶ Fullscreen</button>
+
+<!-- TELEGRAM -->
+<div class="card">
+  🔔 Follow us for Updates!
+  <a href="https://t.me/cricmatchstream" target="_blank">
+    <div class="btn">📢 Click Here To Join Telegram</div>
+  </a>
+</div>
+
+<!-- SHARE -->
+<div class="card">
+  🔗 Copy Link & Share
+  <button class="btn" onclick="sharePage()">❤️ Click Here To Share This Page Link</button>
+</div>
+
+</div>
+
+<!-- FULLSCREEN OVERLAY -->
+<div id="fullOverlay">
+  <span class="closeFull" onclick="closeFull()">✖</span>
+  <iframe id="fullPlayer"></iframe>
+</div>
+
+<!-- POPUP -->
+<div id="tgPopup" class="popup">
+  <div class="popup-box">
+    <h2>📢 Support Us!</h2>
+    <p>Join our Telegram channel</p>
+    <h3>@cricmatchstream</h3>
+
+    <a href="https://t.me/cricmatchstream" target="_blank">
+      <button class="join-btn">Join Now</button>
+    </a>
+
+    <button class="close-btn" onclick="closePopup()">Already Joined</button>
+  </div>
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+<script>
+// 🔴 ADD YOUR FIREBASE CONFIG
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_DOMAIN",
+  databaseURL: "YOUR_DB_URL",
+  projectId: "YOUR_ID",
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// Viewer Counter
+const ref = db.ref("viewers");
+ref.transaction(c => (c || 0) + 1);
+
+window.addEventListener("beforeunload", () => {
+  ref.transaction(c => (c || 1) - 1);
+});
+
+ref.on("value", snap => {
+  document.getElementById("viewerCount").innerText = snap.val() || 0;
+});
+
+// Timer
+let sec = 0;
+setInterval(() => {
+  sec++;
+  let h = String(Math.floor(sec/3600)).padStart(2,'0');
+  let m = String(Math.floor((sec%3600)/60)).padStart(2,'0');
+  let s = String(sec%60).padStart(2,'0');
+  document.getElementById("timer").innerText = `${h}:${m}:${s}`;
+}, 1000);
+
+// FULLSCREEN OVERLAY
+function openFull() {
+  const src = document.getElementById("mainPlayer").src;
+  document.getElementById("fullPlayer").src = src;
+  document.getElementById("fullOverlay").style.display = "block";
+}
+
+function closeFull() {
+  document.getElementById("fullOverlay").style.display = "none";
+  document.getElementById("fullPlayer").src = "";
+}
+
+// Share
+function sharePage() {
+  if (navigator.share) {
+    navigator.share({
+      title: "Live Stream",
+      url: window.location.href
+    });
+  } else {
+    navigator.clipboard.writeText(window.location.href);
+    alert("Link Copied!");
+  }
+}
+
+// Popup
+if (!localStorage.getItem("tgShown")) {
+  document.getElementById("tgPopup").style.display = "flex";
+} else {
+  document.getElementById("tgPopup").style.display = "none";
+}
+
+function closePopup() {
+  document.getElementById("tgPopup").style.display = "none";
+  localStorage.setItem("tgShown", "yes");
+}
+</script>
+
+</body>
+</html>
+     <span id="viewerCount"></span>
